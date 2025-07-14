@@ -1,0 +1,27 @@
+{
+  "name": "redesigned-dollop-blog-api",
+  "version": "1.0.0",
+  "description": "blog api is a testing app and application of jwt concept.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aloe-lue/redesigned-dollop-blog-api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/aloe-lue/redesigned-dollop-blog-api/issues"
+  },
+  "homepage": "https://github.com/aloe-lue/redesigned-dollop-blog-api#readme",
+  "devDependencies": {
+    "prisma": "^6.11.1"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.11.1"
+  }
+}
