@@ -13,7 +13,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/aloe-lue/redesigned-dollop-blog-api/issues"
   },
@@ -22,6 +22,11 @@
     "prisma": "^6.11.1"
   },
   "dependencies": {
-    "@prisma/client": "^6.11.1"
+    "@faker-js/faker": "^9.9.0",
+    "@prisma/client": "^6.11.1",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "express-async-handler": "^1.2.0",
+    "uuid": "^11.1.0"
   }
 }
