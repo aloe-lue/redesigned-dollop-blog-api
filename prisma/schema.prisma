@@ -65,8 +65,8 @@ model post {
   content     String    @db.VarChar(65535)
   dateCreated DateTime  @db.Timestamp()
   dateUpdated DateTime  @db.Timestamp()
-  author      author?   @relation("authorPost", fields: [postId], references: [id])
-  postId      String
+  author      author?   @relation("authorPost", fields: [authorId], references: [id])
+  authorId    String
   comments    comment[] @relation("postComments")
 }
 
