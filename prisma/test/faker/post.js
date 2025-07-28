@@ -2,15 +2,29 @@ import { faker } from "@faker-js/faker";
 
 const { string, book, date, lorem } = faker;
 
-const post = function getRandPost() {
+/**
+ *
+ * @param { String } authorId
+ * @returns
+ */
+const post = function getRandPost(authorId) {
   return {
     id: string.uuid(),
     title: book.title(),
     content: lorem.paragraphs(5),
     dateCreated: date.recent(),
-    dateUpdated: date.anytime(),
-    postId: string.uuid(),
+    dateUpdated: date.future(),
+    authorId: authorId,
   };
 };
 
-export default post;
+/**
+ *
+ * @param {*} authorIds
+ * @returns
+ */
+const posts = function getRandPosts(authorIds) {
+  return authorIds.map(({ id }) => post(id));
+};
+
+export default posts;
