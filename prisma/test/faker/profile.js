@@ -2,7 +2,7 @@ import { faker } from "@faker-js/faker";
 
 const { string, internet, person } = faker;
 
-const profile = function getRandProfile() {
+const profile = function getRandProfile(userId) {
   return {
     id: string.uuid(),
     email: internet.email(),
@@ -11,8 +11,12 @@ const profile = function getRandProfile() {
     password: internet.password(),
     role: person.jobTitle(),
     bio: person.bio(),
-    userId: string.uuid(),
+    userId: userId,
   };
 };
 
-export default profile;
+const profiles = function getRandProfiles(userIds) {
+  return userIds.map(({ id }) => profile(id));
+};
+
+export default profiles;

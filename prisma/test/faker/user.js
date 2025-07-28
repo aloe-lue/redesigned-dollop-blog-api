@@ -1,6 +1,6 @@
 import { faker } from "@faker-js/faker";
 
-const { string, date } = faker;
+const { string, date, helpers } = faker;
 
 const user = function getRandUser() {
   return {
@@ -9,4 +9,6 @@ const user = function getRandUser() {
   };
 };
 
-export default user;
+const users = helpers.multiple(user, { count: 10 });
+
+export default users;
