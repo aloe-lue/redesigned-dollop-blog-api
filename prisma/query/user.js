@@ -9,6 +9,16 @@ class User {
     });
   };
 
+  getUserById = async (id) => {
+    const data = await prisma.user.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    return data;
+  };
+
   deleteUser = async (id) => {
     await prisma.user.delete({
       where: {

@@ -15,6 +15,42 @@ class Post {
     });
   };
 
+  getPosts = async () => {
+    const data = await prisma.post.findMany({
+      select: {
+        id: true,
+        title: true,
+        dateCreated: true,
+        dateUpdated: true,
+        author: true,
+        authorId: true,
+        comments: false,
+      },
+    });
+
+    return data;
+  };
+
+  getPost = async (id) => {
+    const data = await prisma.post.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+        content: true,
+        title: true,
+        dateCreated: true,
+        dateUpdated: true,
+        author: true,
+        authorId: true,
+        comments: true,
+      },
+    });
+
+    return data;
+  };
+
   deletePost = async (authorId) => {
     await prisma.post.delete({
       where: {
