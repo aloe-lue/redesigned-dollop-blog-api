@@ -24,7 +24,7 @@ model profile {
   password       String    @db.VarChar(255)
   role           String?   @db.VarChar(255)
   // you want that the bio is optional
-  bio            String    @db.VarChar(255)
+  bio            String?   @db.VarChar(255)
   profilePicture picture[] @relation("profilePicture")
   user           user      @relation("userProfile", fields: [userId], references: [id])
   userId         String    @unique
