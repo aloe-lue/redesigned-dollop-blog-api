@@ -15,6 +15,16 @@ class Profile {
     });
   };
 
+  getProfileByEmail = async (email) => {
+    const data = await prisma.profile.findUnique({
+      where: {
+        email,
+      },
+    });
+
+    return data;
+  };
+
   getProfile = async (data) => {
     const { id, firstName, lastName, username } = data;
     await prisma.profile.findUnique({
