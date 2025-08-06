@@ -16,19 +16,17 @@ datasource db {
 
 model profile {
   id             String    @id @unique @default(uuid())
-  email          String    @db.VarChar(255)
+  email          String    @unique @db.VarChar(255)
   firstName      String    @db.VarChar(255)
   lastName       String    @db.VarChar(255)
   middleName     String?   @db.VarChar(255)
-  username       String?   @default(cuid()) @db.VarChar(255)
+  username       String?   @unique @db.VarChar(255)
   password       String    @db.VarChar(255)
   role           String?   @db.VarChar(255)
-  // you want that the bio is optional
   bio            String?   @db.VarChar(255)
   profilePicture picture[] @relation("profilePicture")
   user           user      @relation("userProfile", fields: [userId], references: [id])
   userId         String    @unique
-  // use birthdate if you want to 
   birthdate      DateTime  @default("2020-12-09T16:09:53+00:00") @db.Timestamp()
 }
 
@@ -46,7 +44,7 @@ model member {
   user   user    @relation("member", fields: [userId], references: [id])
   userId String  @unique
   // add more independent features here
-  slug   String? @db.VarChar(255)
+  slug   String? @default("member") @db.VarChar(255)
 }
 
 model user {
@@ -65,7 +63,7 @@ model author {
   userId String  @unique
   post   post[]  @relation("authorPost")
   // add independent more features here
-  slug   String? @db.VarChar(255)
+  slug   String? @default("author") @db.VarChar(255)
 }
 
 model post {
