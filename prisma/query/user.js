@@ -9,6 +9,76 @@ class User {
     });
   };
 
+  addUserAuthor = async (
+    createdDate,
+    email,
+    firstName,
+    lastName,
+    username,
+    password
+  ) => {
+    await prisma.user.create({
+      data: {
+        author: {
+          create: {
+            slug: "author",
+          },
+        },
+        createdDate,
+        userProfile: {
+          create: {
+            email,
+            firstName,
+            lastName,
+            username,
+            password,
+            profilePicture: {
+              create: {
+                url: "default.png",
+                createdDate,
+              },
+            },
+          },
+        },
+      },
+    });
+  };
+
+  addUserMember = async (
+    createdDate,
+    email,
+    firstName,
+    lastName,
+    username,
+    password
+  ) => {
+    await prisma.user.create({
+      data: {
+        member: {
+          create: {
+            slug: "member",
+          },
+        },
+        createdDate,
+        userProfile: {
+          create: {
+            email,
+            firstName,
+            lastName,
+            username,
+            password,
+            profilePicture: {
+              create: {
+                url: "default.png",
+                createdDate,
+              },
+            },
+          },
+        },
+      },
+    });
+  };
+
   getUserById = async (id) => {
     const data = await prisma.user.findUnique({
       where: {
