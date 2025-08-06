@@ -27,7 +27,6 @@ model profile {
   profilePicture picture[] @relation("profilePicture")
   user           user      @relation("userProfile", fields: [userId], references: [id])
   userId         String    @unique
-  birthdate      DateTime  @default("2020-12-09T16:09:53+00:00") @db.Timestamp()
 }
 
 model picture {
