@@ -16,12 +16,9 @@ datasource db {
 
 model profile {
   id             String    @id @unique @default(uuid())
-  email          String    @unique @db.VarChar(255)
   firstName      String    @db.VarChar(255)
   lastName       String    @db.VarChar(255)
   middleName     String?   @db.VarChar(255)
-  username       String?   @unique @db.VarChar(255)
-  password       String    @db.VarChar(255)
   role           String?   @db.VarChar(255)
   bio            String?   @db.VarChar(255)
   profilePicture picture[] @relation("profilePicture")
@@ -49,6 +46,10 @@ model member {
 model user {
   id          String    @id @unique @default(uuid())
   createdDate DateTime  @db.Date()
+  // move the user model here
+  email       String    @unique @db.VarChar(255)
+  username    String    @unique @db.VarChar(255)
+  password    String    @db.VarChar(255)
   // im thinking of moving comments to both member and author
   userComment comment[] @relation("userComment")
   userProfile profile?  @relation("userProfile")
