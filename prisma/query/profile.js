@@ -2,14 +2,12 @@ import prisma from "../client/prismaClient.js";
 
 class Profile {
   addProfile = async (data) => {
-    const { email, firstName, lastName, middleName, password, userId } = data;
+    const { firstName, lastName, middleName, userId } = data;
     await prisma.profile.create({
       data: {
-        email,
         firstName,
         lastName,
         middleName,
-        password,
         userId,
       },
     });
@@ -32,21 +30,6 @@ class Profile {
         id,
         firstName,
         lastName,
-        username,
-      },
-    });
-  };
-
-  updateProfile = async (data) => {
-    const { id, email, username, password } = data;
-    await prisma.profile.update({
-      where: {
-        id,
-      },
-      data: {
-        email,
-        username,
-        password,
       },
     });
   };
