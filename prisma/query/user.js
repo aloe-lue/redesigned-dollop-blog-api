@@ -9,39 +9,33 @@ class User {
     });
   };
 
-  addUserAuthor = async (
-    createdDate,
-    email,
-    firstName,
-    lastName,
-    username,
-    password
-  ) => {
-    await prisma.user.create({
-      data: {
-        author: {
-          create: {
-            slug: "author",
-          },
-        },
-        createdDate,
-        userProfile: {
-          create: {
-            email,
-            firstName,
-            lastName,
-            username,
-            password,
-            profilePicture: {
-              create: {
-                url: "default.png",
-                createdDate,
-              },
-            },
-          },
-        },
+  // see if there's already email in the db
+  getUserByEmail = async (email) => {
+    const data = await prisma.user.findUnique({
+      select: {
+        username: true,
+        email: true,
+        password: true,
+      },
+      where: {
+        email,
       },
     });
+    return data;
+  };
+
+  // use this to verify login
+  getUserByUsername = async (username) => {
+    const data = await prisma.user.findUnique({
+      where: { username },
+      select: {
+        password: true,
+        username: true,
+        id: true,
+      },
+    });
+
+    return data;
   };
 
   addUserMember = async (
@@ -54,6 +48,9 @@ class User {
   ) => {
     await prisma.user.create({
       data: {
+        email,
+        username,
+        password,
         member: {
           create: {
             slug: "member",
@@ -62,11 +59,42 @@ class User {
         createdDate,
         userProfile: {
           create: {
-            email,
             firstName,
             lastName,
-            username,
-            password,
+            profilePicture: {
+              create: {
+                url: "default.png",
+                createdDate,
+              },
+            },
+          },
+        },
+      },
+    });
+  };
+  addUserAuthor = async (
+    createdDate,
+    email,
+    firstName,
+    lastName,
+    username,
+    password
+  ) => {
+    await prisma.user.create({
+      data: {
+        email,
+        username,
+        password,
+        author: {
+          create: {
+            slug: "author",
+          },
+        },
+        createdDate,
+        userProfile: {
+          create: {
+            firstName,
+            lastName,
             profilePicture: {
               create: {
                 url: "default.png",
