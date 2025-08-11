@@ -15,7 +15,7 @@ datasource db {
 }
 
 model profile {
-  id             String    @id @unique @default(uuid())
+  id             String    @id @unique @default(cuid())
   firstName      String    @db.VarChar(255)
   lastName       String    @db.VarChar(255)
   middleName     String?   @db.VarChar(255)
@@ -27,7 +27,7 @@ model profile {
 }
 
 model picture {
-  id          String   @id @unique @default(uuid())
+  id          String   @id @unique @default(cuid())
   url         String   @db.VarChar(255)
   caption     String?  @db.VarChar(255)
   profile     profile? @relation("profilePicture", fields: [profileId], references: [id])
@@ -36,7 +36,7 @@ model picture {
 }
 
 model member {
-  id     String  @id @unique @default(uuid())
+  id     String  @id @unique @default(cuid())
   user   user    @relation("member", fields: [userId], references: [id])
   userId String  @unique
   // add more independent features here
@@ -44,7 +44,7 @@ model member {
 }
 
 model user {
-  id          String    @id @unique @default(uuid())
+  id          String    @id @unique @default(cuid())
   createdDate DateTime  @db.Date()
   // move the user model here
   email       String    @unique @db.VarChar(255)
@@ -58,7 +58,7 @@ model user {
 }
 
 model author {
-  id     String  @id @unique @default(uuid())
+  id     String  @id @unique @default(cuid())
   user   user    @relation("author", fields: [userId], references: [id])
   userId String  @unique
   post   post[]  @relation("authorPost")
@@ -67,7 +67,7 @@ model author {
 }
 
 model post {
-  id          String    @id @unique @default(uuid())
+  id          String    @id @unique @default(cuid())
   title       String    @db.VarChar(255)
   content     String    @db.VarChar(65535)
   dateCreated DateTime  @db.Timestamp()
@@ -78,7 +78,7 @@ model post {
 }
 
 model comment {
-  id          String    @id @unique @default(uuid())
+  id          String    @id @unique @default(cuid())
   title       String?   @db.VarChar(255)
   content     String    @db.VarChar(65535)
   dateCreated DateTime  @db.Timestamp()
