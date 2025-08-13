@@ -19,11 +19,11 @@
   },
   "homepage": "https://github.com/aloe-lue/redesigned-dollop-blog-api#readme",
   "devDependencies": {
-    "prisma": "^6.11.1"
+    "prisma": "^6.13.0"
   },
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
-    "@prisma/client": "^6.11.1",
+    "@prisma/client": "^6.13.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
