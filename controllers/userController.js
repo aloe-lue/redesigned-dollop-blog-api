@@ -1,14 +1,15 @@
 import asyncHandler from "express-async-handler";
-import { validationResult, param, body } from "express-validator";
+import { validationResult, body, header } from "express-validator";
 import * as bcrypt from "bcrypt";
 import db from "../prisma/query/index.js";
 import passport from "passport";
 import jwt from "jsonwebtoken";
 import { Strategy as LocalStrategy } from "passport-local";
 import "dotenv/config";
+import UserExistError from "../errors/userExistError.js";
 
 // ! important => fix this login that can be accessed by user both member and author
-// todo: rate limiter using node-rate-limiter-flexible maybe not now hehe :<
+// todo: make errors known handle next err that cuts through 404 not found or 500 internal server error
 
 const empty = "should not be left empty.";
 const firstName = "should be a firstName such as John.";
@@ -52,7 +53,14 @@ const postUserMemberVc = [
     .isLength({ min: 4, max: 32 })
     .withMessage(`username ${usernameLength}`)
     .matches(/^[a-zA-Z0-9_]+$/)
-    .withMessage(`username ${username}`),
+    .withMessage(`username ${username}`)
+    .custom(async (value) => {
+      const data = await db.user.getUserByUsername(value);
+
+      if (data) {
+        throw new UserExistError("Username is already taken.");
+      }
+    }),
   body("email")
     .trim()
     .notEmpty()
@@ -62,7 +70,7 @@ const postUserMemberVc = [
     .custom(async (value) => {
       const data = await db.user.getUserByEmail(value);
       if (data) {
-        throw new Error("Email is already in use");
+        throw new UserExistError("Email is already in use");
       }
     }),
   body("password")
@@ -175,10 +183,11 @@ const tokenForMember = asyncHandler(async (req, res) => {
     if (err || !user) {
       return res.status(400).json({ message: info.message });
     }
+
     const jwtSecret = process.env.MEMBER_JWT_SECRET;
     const token = jwt.sign({ userId: user }, jwtSecret, {
       algorithm: "HS256",
-      expiresIn: "5m",
+      expiresIn: "15d",
     });
 
     // give token to user == member
@@ -257,7 +266,7 @@ const tokenForAuthor = asyncHandler(async (req, res) => {
     const jwtSecret = process.env.AUTHOR_JWT_SECRET;
     const token = jwt.sign({ userId: user }, jwtSecret, {
       algorithm: "HS256",
-      expiresIn: "5m",
+      expiresIn: "15d",
     });
     // give token user author
     res.json({ token });
