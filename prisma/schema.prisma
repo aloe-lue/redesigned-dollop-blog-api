@@ -76,6 +76,7 @@ model post {
   comments    comment[] @relation("postComments")
   author      author?   @relation("authorPost", fields: [authorId], references: [id])
   authorId    String
+  isPublished Boolean   @default(false)
 }
 
 model comment {
