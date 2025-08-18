@@ -1,8 +1,45 @@
 import { Router } from "express";
 import controller from "../controllers/indexController.js";
 
-const posts = Router();
+const { getPost, getPosts, setPost, updatePost, deletePost } = controller.posts;
+const {
+  getPostComments,
+  getPostComment,
+  setPostComment,
+  updatePostComment,
+  deletePostComment,
+} = controller.comment;
 
-posts.get("/", controller.posts.getPosts);
+const postsRouter = Router();
 
-export default posts;
+// get posts
+postsRouter.get("/", getPosts);
+
+// get single post
+postsRouter.get("/:postId", getPost);
+
+// add single post
+postsRouter.post("/", setPost);
+
+// update single post
+postsRouter.put("/:postId", updatePost);
+
+// delete single post
+postsRouter.delete("/:postId", deletePost);
+
+// get comments
+postsRouter.get("/:postId/comments", getPostComments);
+
+// get comment from a post
+postsRouter.get("/:postId/comments/:commentId", getPostComment);
+
+// add a comment to a post
+postsRouter.post("/:postId/comments", setPostComment);
+
+// update a comment from a post
+postsRouter.put("/:postId/comments/:commentId", updatePostComment);
+
+// delete a comment from a post
+postsRouter.delete("/:postId/comments/:commentId", deletePostComment);
+
+export default postsRouter;
