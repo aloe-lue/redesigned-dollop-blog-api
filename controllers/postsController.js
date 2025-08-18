@@ -2,9 +2,13 @@ import asyncHandler from "express-async-handler";
 import db from "../prisma/query/index.js";
 import { query, param, body, validationResult } from "express-validator";
 import passport from "passport";
-import jwtConfig from "./passportController.js";
 import PostDoesNotExistError from "../errors/postDoesNotExistError.js";
 import PostExhaustedError from "../errors/postsExhaustedError.js";
+import "dotenv/config";
+import {
+  Strategy as JwtStrategy,
+  ExtractJwt as extractJwt,
+} from "passport-jwt";
 
 const pageQuery = "should be numeric";
 
@@ -89,10 +93,27 @@ const post = [postGetterVc, postGetter];
 
 /****************************************************************************************************************************************** */
 
+const JwtStrateyPassport = new JwtStrategy(
+  {
+    jwtFromRequest: extractJwt.fromAuthHeaderAsBearerToken(),
+    secretOrKey: process.env.AUTHOR_JWT_SECRET,
+  },
+  async (jwtPayload, done) => {
+    const user = await db.user.getUserById(jwtPayload.userId);
+
+    // verify jwt token
+    if (!user) {
+      return done(null, false, { message: "invalid user" });
+    }
+
+    return done(null, { userId: jwtPayload.userId });
+  }
+);
+
 // authenticate author jwt token user == author
 const authorTokenAuthenticator = asyncHandler(async (req, res, next) => {
   // use the jwt strategy
-  passport.use(jwtConfig.jwtStrategyAuthor);
+  passport.use(JwtStrateyPassport);
   passport.authenticate("jwt", { session: false }, (error, user, info) => {
     if (error) {
       return res.status(401).json({
