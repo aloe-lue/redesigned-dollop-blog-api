@@ -405,7 +405,7 @@ const postCommentDeleter = asyncHandler(async (req, res) => {
   // redirecting a request is dangerous go and find ways to counter this
   // post id is dangerous be careful of this
   // res.redirect(`/post/${postId}`);
-  res.json({ message: "post deleted" });
+  res.json({ message: "comment deleted!" });
 });
 
 const postCommentRemoval = [postCommentDeleterVc, postCommentDeleter];
