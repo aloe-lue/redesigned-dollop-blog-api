@@ -1,4 +1,10 @@
 import prisma from "../client/prismaClient.js";
+import picture from "./picture.js";
+import profile from "./profile.js";
+import author from "./author.js";
+import post from "./post.js";
+import comment from "./comment.js";
+import member from "./member.js";
 
 class User {
   addUser = async (createdDate) => {
@@ -12,11 +18,6 @@ class User {
   // see if there's already email in the db
   getUserByEmail = async (email) => {
     const data = await prisma.user.findUnique({
-      select: {
-        username: true,
-        email: true,
-        password: true,
-      },
       where: {
         email,
       },
@@ -32,20 +33,20 @@ class User {
         password: true,
         username: true,
         id: true,
+        author: {
+          select: {
+            slug: true,
+          },
+        },
       },
     });
 
     return data;
   };
 
-  addUserMember = async (
-    createdDate,
-    email,
-    firstName,
-    lastName,
-    username,
-    password
-  ) => {
+  addUserMember = async (data) => {
+    const { createdDate, email, firstName, lastName, username, password } =
+      data;
     await prisma.user.create({
       data: {
         email,
@@ -72,14 +73,10 @@ class User {
       },
     });
   };
-  addUserAuthor = async (
-    createdDate,
-    email,
-    firstName,
-    lastName,
-    username,
-    password
-  ) => {
+
+  addUserAuthor = async (data) => {
+    const { createdDate, email, firstName, lastName, username, password } =
+      data;
     await prisma.user.create({
       data: {
         email,
@@ -112,6 +109,15 @@ class User {
       where: {
         id,
       },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        password: false,
+        author: true,
+        member: true,
+        userProfile: true,
+      },
     });
 
     return data;
@@ -125,29 +131,41 @@ class User {
     });
   };
 
-  deleteUserMember = async (comments, pictures, profile, member) => {
-    await prisma.$transaction([
-      // delete the following related tables
-      comments,
-      pictures,
-      profile,
-      member,
-      // finalyy delete user
-      this.deleteUser,
-    ]);
+  deleteUserMember = async (user) => {
+    // delete all user owned comments
+    await comment.deleteUserComments(user.id);
+
+    // delete profilePictures
+    await picture.deletePictures(user.userProfile.id);
+
+    // delete profile
+    await profile.deleteProfile(user.id);
+
+    // delete member
+    await member.deleteMember(user.id);
+
+    // finalyy delete user
+    await this.deleteUser(user.id);
   };
 
-  deleteUserAuthor = async (comments, posts, pictures, profile, author) => {
-    await prisma.$transaction([
-      // delete the following related tables
-      comments,
-      posts,
-      pictures,
-      profile,
-      author,
-      // finalyy delete user
-      this.deleteUser,
-    ]);
+  deleteUserAuthor = async (postIds, user) => {
+    // delete all comments that the author posts contain
+    await comment.deletePostsComments(postIds);
+
+    // delete author posts
+    await post.deletePosts(user.author.id);
+
+    // delete profilePicture
+    await picture.deletePictures(user.userProfile.id);
+
+    // delete profile
+    await profile.deleteProfile(user.id);
+
+    // delete author
+    await author.deleteAuthor(user.id);
+
+    // finalyy delete user
+    await this.deleteUser(user.id);
   };
 }
 
