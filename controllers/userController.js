@@ -7,9 +7,13 @@ import jwt from "jsonwebtoken";
 import { Strategy as LocalStrategy } from "passport-local";
 import "dotenv/config";
 import UserExistError from "../errors/userExistError.js";
+import { jwtDecode } from "jwt-decode";
+import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
+import UserDoesNotExistError from "../errors/userDoesNotExistError.js";
 
 // ! important => fix this login that can be accessed by user both member and author
 // todo: make errors known handle next err that cuts through 404 not found or 500 internal server error
+// ? i intend to not implement rate limiting
 
 const empty = "should not be left empty.";
 const firstName = "should be a firstName such as John.";
@@ -24,8 +28,9 @@ const password =
 const confirmPassword = "and password does not match.";
 const passwordLength = "should be 8 to 64 characters.";
 const stringCharacter = "should be a string";
+const authorSecretPassword = "doesn't match with author_secret";
 
-const postUserMemberVc = [
+const userAdderVc = [
   body("firstName")
     .trim()
     .notEmpty()
@@ -56,7 +61,6 @@ const postUserMemberVc = [
     .withMessage(`username ${username}`)
     .custom(async (value) => {
       const data = await db.user.getUserByUsername(value);
-
       if (data) {
         throw new UserExistError("Username is already taken.");
       }
@@ -93,56 +97,68 @@ const postUserMemberVc = [
       return value === req.body.password;
     })
     .withMessage(`confirm password ${confirmPassword}`),
+  body("authorPassword")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage(`authorPassword ${empty}`)
+    .isStrongPassword()
+    .withMessage(`authorPassword ${password}`)
+    .isLength({ min: 8, max: 64 })
+    .withMessage(`authorPassword ${passwordLength}`)
+    .custom((value) => {
+      // make sure to match the author-password
+      const isMatch = bcrypt.compareSync(value, process.env.AUTHOR_PASSWORD);
+      return isMatch;
+    })
+    .withMessage(`author password ${authorSecretPassword}`),
 ];
 
 /**
  * add user member
  */
-const userMemberAdder = asyncHandler(async (req, res) => {
+const userAdder = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
     return res.status(400).json({
-      validationError: errors.array(),
+      userAdderValidationError: errors.array(),
     });
   }
 
-  const { email, firstName, lastName, username, password } = req.body;
+  const { email, firstName, lastName, username, password, authorPassword } =
+    req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
-  await db.user.addUserMember(
-    new Date(),
-    email,
-    firstName,
-    lastName,
-    username,
-    hashedPassword
-  );
-  // 201 := created
-  res.redirect(201, "/user/log_in");
+
+  const data = {
+    createdDate: new Date(),
+    email: email,
+    firstName: firstName,
+    lastName: lastName,
+    username: username,
+    password: hashedPassword,
+  };
+
+  // you want to check if the user really correct the author password
+  if (typeof authorPassword !== "undefined") {
+    await db.user.addUserAuthor(data);
+  } else {
+    await db.user.addUserMember(data);
+  }
+
+  res.json({
+    message: `user ${
+      typeof authorPassword !== "undefined" ? "author" : "member"
+    } added`,
+  });
 });
 
 /**
  * middleware for adding user member
  */
-const postUserMember = [postUserMemberVc, userMemberAdder];
+const userSetter = [userAdderVc, userAdder];
 
-const localStrategy = new LocalStrategy(async (username, password, done) => {
-  const user = await db.user.getUserByUsername(username);
-  if (!user) {
-    return done(null, false, { message: "Incorrect username" });
-  }
-  // compare user input password with  hashed user password
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    return done(null, false, { message: "Incorrect password" });
-  }
-  // send minimal data as paylaod to jwt
-  return done(null, user.id);
-});
-
-passport.use(localStrategy);
-
-const postUserLoginVC = [
+const userLoginVC = [
   body("username")
     .trim()
     .notEmpty()
@@ -161,123 +177,225 @@ const postUserLoginVC = [
     .withMessage(`password ${passwordLength}`),
 ];
 
-// use local strategy
-
 const validationLogin = asyncHandler(async (req, res, next) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
     return res.status(400).json({
-      validationError: errors.array(),
+      loginValidationError: errors.array(),
     });
   }
   // validation passed
   next();
 });
 
+const localStrategy = new LocalStrategy(async (username, password, done) => {
+  const user = await db.user.getUserByUsername(username);
+  if (!user) {
+    return done(null, false, { message: "Incorrect username" });
+  }
+  // compare user input password with  hashed user password
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    return done(null, false, { message: "Incorrect password" });
+  }
+  // send minimal data as payload to jwt
+  return done(null, user.id);
+});
+
 /**
  * give token to user
  */
-const tokenForMember = asyncHandler(async (req, res) => {
-  passport.authenticate("local", { session: false }, (err, user, info) => {
-    if (err || !user) {
-      return res.status(400).json({ message: info.message });
+const tokenForUser = asyncHandler(async (req, res) => {
+  passport.use(localStrategy);
+  passport.authenticate(
+    "local",
+    { session: false },
+    async (err, user, info) => {
+      if (err) {
+        return res.status(401).json({ message: info.message });
+      }
+
+      if (!user) {
+        return res.status(403).json({ message: info.message });
+      }
+
+      // this is to get user role
+      const userGetter = await db.user.getUserById(user);
+
+      let jwtSecret;
+      if (userGetter.member === null) {
+        jwtSecret = process.env.AUTHOR_JWT_SECRET;
+      } else {
+        jwtSecret = process.env.MEMBER_JWT_SECRET;
+      }
+
+      const token = jwt.sign({ userId: user }, jwtSecret, {
+        algorithm: "HS256",
+        expiresIn: "15d",
+      });
+
+      // give token to user == member
+      res.json({ token });
     }
-
-    const jwtSecret = process.env.MEMBER_JWT_SECRET;
-    const token = jwt.sign({ userId: user }, jwtSecret, {
-      algorithm: "HS256",
-      expiresIn: "15d",
-    });
-
-    // give token to user == member
-    return res.json({ token });
-  })(req, res);
+  )(req, res);
 });
 
-// run validation chain
-// if passed go to the next middleware
-// if correct credentials give token to user member
-const postUserMemberAuth = [postUserLoginVC, validationLogin, tokenForMember];
+const userTokenGetter = [userLoginVC, validationLogin, tokenForUser];
 
-/***
- * make the same chains but very add additional fields
- * author password
- * get from env
- * independent hashed
- * verify hashed on other
- */
-const authorPassword = "is a strong password.";
-const authorPasswordHashed = "Incorrect author password";
+const logOutUser = asyncHandler(async (req, res, next) => {
+  req.logout((err) => {
+    if (err) {
+      next(err);
+    }
 
-const postUserAuthorVc = postUserMemberVc.slice();
-postUserAuthorVc.push(
-  body("authorPassword")
+    res.json({ logOutMessage: "you're logged out!" });
+  });
+});
+
+const emptyField = "should not be left empty.";
+
+const authenticateUserJwtVc = [
+  header("authorization")
     .trim()
     .notEmpty()
-    .withMessage(`author password ${empty}`)
-    .isString()
-    .withMessage(`author password ${stringCharacter}`)
-    .isStrongPassword()
-    .withMessage(`author password ${authorPassword}`)
-    .isLength({ min: 8, max: 64 })
-    .custom((value) => {
-      const hashedAuthorPassword = process.env.AUTHOR_PASSWORD;
-      const isMatch = bcrypt.compareSync(value, hashedAuthorPassword);
-      return isMatch;
-    })
-    .withMessage(`${authorPasswordHashed}`)
-);
+    .withMessage(`authorization ${emptyField}`),
+];
 
-const userAuthorAdder = asyncHandler(async (req, res) => {
+const authenticateUserJwt = asyncHandler(async (req, res, next) => {
+  const errors = validationResult(req);
+  let userRole;
+
+  if (!errors.isEmpty) {
+    return res.status(404).json({
+      commentAuthenticationValidationError: errors.array(),
+    });
+  }
+
+  const headerField = "authorization";
+  const reqHeader = req.headers[headerField];
+
+  // this could go awry but passport use or passport authenticate know it
+  if (typeof reqHeader !== undefined) {
+    const bearerToken = req.headers["authorization"].split(" ")[1];
+
+    // get jwt payload using jwt-decode dependency
+    const decodedJwt = jwtDecode(bearerToken);
+
+    if (!decodedJwt) {
+      throw new JwtDecodeError("jwt is not valid");
+    }
+
+    // role checks for making member or author comments
+    const user = await db.user.getUserById(decodedJwt.userId);
+    // make sure to find that such user exist
+    if (!user) {
+      throw new UserExistError("there is no user.");
+    }
+
+    // prisma findunique returns user.author = {} or user.member = null
+    if (user.member == null) {
+      userRole = "author";
+    } else {
+      userRole = "member";
+    }
+  }
+
+  const jwtStrategyOpts = {
+    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    secretOrKey:
+      userRole === "member"
+        ? process.env.MEMBER_JWT_SECRET
+        : process.env.AUTHOR_JWT_SECRET,
+  };
+
+  const jwtCbFunction = async (jwtPayload, done) => {
+    // get user by id again because we can't access what's inside the passport use jwtCbFunction but is it possible?
+    const user = await db.user.getUserById(jwtPayload.userId);
+    if (!user) {
+      return done(null, false, { message: "Invalid user" });
+    }
+    return done(null, { userId: jwtPayload.userId });
+  };
+
+  passport.use(new JwtStrategy(jwtStrategyOpts, jwtCbFunction));
+  // this time don't next but instead add the comment
+  passport.authenticate("jwt", { session: false }, (error, user, info) => {
+    // unauthenticated
+    if (error) {
+      return res.status(401).json({
+        message: info.message,
+      });
+    }
+    // user is forbidden
+    if (!user) {
+      return res.status(403).json({
+        message: info.message,
+      });
+    }
+
+    // allow user to do operation
+    next();
+  })(req, res, next);
+});
+const userIdIsAlphanumeric = "should be alphanumeric.";
+const userIdlength = "should be exactly 25 characters";
+
+const userDeleterVc = [
+  body("userId")
+    .trim()
+    .notEmpty()
+    .withMessage(`userId ${empty}`)
+    .isString()
+    .withMessage(`userId ${stringCharacter}`)
+    .isAlphanumeric()
+    .withMessage(`userId ${userIdIsAlphanumeric}`)
+    .isLength({ max: 25, min: 25 })
+    .withMessage(`userId ${userIdlength}`),
+];
+
+const userDeleter = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
     return res.status(400).json({
-      validationError: errors.array(),
+      userDeletionValidationError: errors.array(),
     });
   }
-  const { email, firstName, lastName, username, password } = req.body;
-  const hashedPassword = await bcrypt.hash(password, 10);
-  await db.user.addUserAuthor(
-    new Date(),
-    email,
-    firstName,
-    lastName,
-    username,
-    hashedPassword
-  );
-  // 201 := created
-  res.redirect(201, "/user/log_in/author");
-});
-/**
- * make sure author knows the author password
- * then add an author
- */
-const postUserAuthor = [postUserAuthorVc, userAuthorAdder];
 
-// same function different env value this is for author jwt token
-const tokenForAuthor = asyncHandler(async (req, res) => {
-  passport.authenticate("local", { session: false }, (err, user, info) => {
-    if (err || !user) {
-      return res.status(400).json({ message: info.message });
-    }
-    // you want to make use another jwt secret for this
-    const jwtSecret = process.env.AUTHOR_JWT_SECRET;
-    const token = jwt.sign({ userId: user }, jwtSecret, {
-      algorithm: "HS256",
-      expiresIn: "15d",
-    });
-    // give token user author
-    res.json({ token });
-  })(req, res);
+  const { userId } = req.body;
+  const user = await db.user.getUserById(userId);
+
+  if (!user) {
+    throw new UserDoesNotExistError("user does not exist error");
+  }
+
+  if (user.member == null) {
+    const postsIds = await db.post.getPostIdsByAuthorId(user.author.id);
+
+    // delete user == author operation
+    await db.user.deleteUserAuthor(postsIds, user);
+  } else {
+    // delete user == member operation
+    await db.user.deleteUserMember(user);
+  }
+  res.json({ message: "user deleted" });
 });
 
-const postUserAuthorAuth = [postUserLoginVC, validationLogin, tokenForAuthor];
+const userDelete = [
+  authenticateUserJwtVc,
+  authenticateUserJwt,
+  userDeleterVc,
+  userDeleter,
+];
+
+// run validation chain
+// if passed go to the next middleware
+// if correct credentials give token to user member
 
 export default {
-  postUserMember,
-  postUserMemberAuth,
-  postUserAuthor,
-  postUserAuthorAuth,
+  setUser: userSetter,
+  getUserToken: userTokenGetter,
+  logOutUser,
+  deleteUser: userDelete,
 };
