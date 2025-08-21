@@ -3,15 +3,14 @@ import comment from "./comment.js";
 
 class Post {
   addPost = async (data) => {
-    const { id, content, dateCreated, dateUpdated, authorId, isPublished } =
-      data;
+    const { id, content, dateCreated, dateUpdated, userId, isPublished } = data;
     await prisma.post.create({
       data: {
         id,
         content,
         dateCreated,
         dateUpdated,
-        authorId,
+        userId,
         isPublished,
       },
     });
@@ -27,29 +26,35 @@ class Post {
     return data;
   };
 
-  getPostIdsByAuthorId = async (authorId) => {
+  getPostsByUserId = async (userId) => {
     const data = await prisma.post.findMany({
-      where: {
-        authorId,
+      include: {
+        comments: false,
       },
-      select: {
-        id: true,
+      where: {
+        userId,
+      },
+      take: 5,
+      orderBy: {
+        dateUpdated: "desc",
+        dateCreated: "desc",
       },
     });
 
     return data;
   };
 
-  getPostsByAuthorId = async (authorId) => {
+  getPostIdsByUserIdOffset = async (userId, skips) => {
     const data = await prisma.post.findMany({
       include: {
         comments: false,
-        author: true,
+        user: true,
       },
       where: {
-        authorId,
+        userId,
       },
       take: 5,
+      skip: skips,
     });
 
     return data;
@@ -62,8 +67,7 @@ class Post {
         id: true,
         dateCreated: true,
         dateUpdated: true,
-        author: false,
-        authorId: true,
+        user: true,
         comments: false,
       },
       where: {
@@ -82,8 +86,7 @@ class Post {
         id: true,
         dateCreated: true,
         dateUpdated: true,
-        author: false,
-        authorId: true,
+        user: true,
         comments: false,
       },
 
@@ -105,12 +108,7 @@ class Post {
         content: true,
         dateCreated: true,
         dateUpdated: true,
-        author: {
-          select: {
-            id: true,
-            userId: true,
-          },
-        },
+        user: true,
         // don't include all comments at all once
         comments: false,
       },
@@ -130,10 +128,10 @@ class Post {
   };
 
   // useful when deleting author account
-  deletePosts = async (authorId) => {
+  deletePosts = async (userId) => {
     await prisma.post.deleteMany({
       where: {
-        authorId,
+        userId,
       },
     });
   };
