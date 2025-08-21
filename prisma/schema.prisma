@@ -56,6 +56,7 @@ model user {
   userProfile profile?  @relation("userProfile")
   author      author?   @relation("author")
   member      member?   @relation("member")
+  userPost    post[]    @relation("userPost")
 }
 
 model author {
@@ -64,7 +65,6 @@ model author {
   userId String  @unique
   // add independent more features here
   slug   String? @default("author") @db.VarChar(255)
-  post   post[]  @relation("authorPost")
 }
 
 model post {
@@ -73,9 +73,9 @@ model post {
   dateCreated DateTime  @db.Timestamp()
   dateUpdated DateTime? @db.Timestamp()
   comments    comment[] @relation("postComments")
-  author      author?   @relation("authorPost", fields: [authorId], references: [id])
-  authorId    String
   isPublished Boolean   @default(false)
+  user        user?     @relation("userPost", fields: [userId], references: [id])
+  userId      String?
 }
 
 model comment {
