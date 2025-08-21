@@ -69,7 +69,6 @@ model author {
 
 model post {
   id          String    @id @unique @default(cuid())
-  title       String    @db.VarChar(255)
   content     String    @db.VarChar(65535)
   dateCreated DateTime  @db.Timestamp()
   dateUpdated DateTime? @db.Timestamp()
