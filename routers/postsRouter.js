@@ -1,7 +1,8 @@
 import { Router } from "express";
 import controller from "../controllers/indexController.js";
 
-const { getPost, getPosts, setPost, updatePost, deletePost } = controller.posts;
+const { getPost, getPosts, setPost, updatePost, deletePost, getAuthorPosts } =
+  controller.posts;
 const {
   getPostComments,
   getPostComment,
@@ -14,6 +15,9 @@ const postsRouter = Router();
 
 // get posts
 postsRouter.get("/", getPosts);
+
+// get author posts
+postsRouter.get("/:userId", getAuthorPosts);
 
 // get single post
 postsRouter.get("/:postId", getPost);
