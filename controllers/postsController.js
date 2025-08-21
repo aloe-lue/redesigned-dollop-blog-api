@@ -9,6 +9,7 @@ import {
   Strategy as JwtStrategy,
   ExtractJwt as extractJwt,
 } from "passport-jwt";
+import UserDoesNotExistError from "../errors/userDoesNotExistError.js";
 
 const pageQuery = "should be numeric";
 
@@ -144,14 +145,14 @@ const postSetterVc = [
     .withMessage(`content ${stringChar}`)
     .isLength({ min: 500, max: 10000 })
     .withMessage(`content ${minMaxContent}`),
-  body("postAuthorId")
+  body("postUserId")
     .trim()
     .notEmpty()
-    .withMessage(`authorId ${emptyField}`)
+    .withMessage(`userId ${emptyField}`)
     .isString()
-    .withMessage(`authorId ${stringChar}`)
+    .withMessage(`userId ${stringChar}`)
     .isLength({ max: 25, min: 25 })
-    .withMessage(`authorId ${cuidLength}`),
+    .withMessage(`userId ${cuidLength}`),
 ];
 const postSetter = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
@@ -166,7 +167,7 @@ const postSetter = asyncHandler(async (req, res) => {
   const bodyReq = req.body;
 
   const data = {
-    authorId: bodyReq.postAuthorId,
+    userId: bodyReq.postUserId,
     content: bodyReq.postContent,
     dateCreated: new Date(),
     isPublished: false,
@@ -193,14 +194,14 @@ const postUpdaterVC = [
     .withMessage(`content ${stringChar}`)
     .isLength({ min: 500, max: 10000 })
     .withMessage(`content ${minMaxContent}`),
-  body("postAuthorId")
+  body("postUserId")
     .trim()
     .notEmpty()
-    .withMessage(`authorId ${emptyField}`)
+    .withMessage(`UserId ${emptyField}`)
     .isString()
-    .withMessage(`authorId ${stringChar}`)
+    .withMessage(`UserId ${stringChar}`)
     .isLength({ max: 25, min: 25 })
-    .withMessage(`authorId ${cuidLength}`),
+    .withMessage(`UserId ${cuidLength}`),
   param("postId")
     .trim()
     .notEmpty()
@@ -233,11 +234,11 @@ const postUpdater = asyncHandler(async (req, res) => {
   if (!post) {
     throw new PostDoesNotExistError("post doesn't exist");
   }
-  const { postIsPublished, postContent, postAuthorId } = req.body;
+  const { postIsPublished, postContent, postUserId } = req.body;
   const { postId } = req.params;
 
   const data = {
-    authorId: postAuthorId,
+    userId: postUserId,
     content: postContent,
     dateUpdated: new Date(),
     id: postId,
@@ -293,10 +294,74 @@ const postDeleter = asyncHandler(async (req, res) => {
 
 const postRemover = [authorTokenAuthenticator, postDeleterVc, postDeleter];
 
+const skipsNumeric = "should be number";
+const skipLimits = "should be around like 1 up to 100000";
+
+const authorPostsVc = [
+  param("userId")
+    .trim()
+    .notEmpty()
+    .withMessage(`userId ${postEmpty}`)
+    .isString()
+    .withMessage(`userId ${postString}`)
+    .isAlphanumeric()
+    .withMessage(`userId ${postAlphaNum}`)
+    .isLength({ max: 25, min: 25 })
+    .withMessage(`userId ${cuidLength}`),
+  query("skips")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage(`skips ${emptyField}`)
+    .isNumeric()
+    .withMessage(`skips ${numeric}`)
+    .custom((value) => {
+      const val = Number(value);
+      return val >= 1 && val < Number.MAX_SAFE_INTEGER;
+    })
+    .withMessage(`skips ${skipLimits}`),
+];
+
+const authorPosts = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      userPostsValidationError: errors.array(),
+    });
+  }
+
+  const user = await db.user.getUserById(req.params.userId);
+  if (!user) {
+    throw new UserDoesNotExistError("user does not exist.");
+  }
+
+  const { skips } = req.query;
+  const skipNum = Number(skips) || 0;
+
+  let posts;
+
+  if (skipNum >= 1 && skipNum < Number.MAX_SAFE_INTEGER) {
+    posts = await db.post.getPostIdsByUserIdOffset(user.id, skipNum);
+  } else {
+    posts = await db.post.getPostsByUserId(user.id);
+  }
+
+  res.json(posts);
+});
+
+//
+const authorPostsGetter = [
+  authorTokenAuthenticator,
+  authorPostsVc,
+  authorPosts,
+];
+
 export default {
   getPosts: posts,
   getPost: post,
   setPost: postAdder,
   updatePost: postPutter,
   deletePost: postRemover,
+  getAuthorPosts: authorPostsGetter,
 };
