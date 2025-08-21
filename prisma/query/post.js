@@ -3,19 +3,11 @@ import comment from "./comment.js";
 
 class Post {
   addPost = async (data) => {
-    const {
-      id,
-      title,
-      content,
-      dateCreated,
-      dateUpdated,
-      authorId,
-      isPublished,
-    } = data;
+    const { id, content, dateCreated, dateUpdated, authorId, isPublished } =
+      data;
     await prisma.post.create({
       data: {
         id,
-        title,
         content,
         dateCreated,
         dateUpdated,
@@ -23,6 +15,16 @@ class Post {
         isPublished,
       },
     });
+  };
+
+  getPostById = async (id) => {
+    const data = await prisma.post.findId({
+      where: {
+        id,
+      },
+    });
+
+    return data;
   };
 
   getPostIdsByAuthorId = async (authorId) => {
@@ -38,12 +40,26 @@ class Post {
     return data;
   };
 
+  getPostsByAuthorId = async (authorId) => {
+    const data = await prisma.post.findMany({
+      include: {
+        comments: false,
+        author: true,
+      },
+      where: {
+        authorId,
+      },
+      take: 5,
+    });
+
+    return data;
+  };
+
   getPosts = async () => {
     const data = await prisma.post.findMany({
       take: 10,
       select: {
         id: true,
-        title: true,
         dateCreated: true,
         dateUpdated: true,
         author: false,
@@ -64,7 +80,6 @@ class Post {
       skip: 10 * skip,
       select: {
         id: true,
-        title: true,
         dateCreated: true,
         dateUpdated: true,
         author: false,
@@ -88,7 +103,6 @@ class Post {
       select: {
         id: true,
         content: true,
-        title: true,
         dateCreated: true,
         dateUpdated: true,
         author: {
@@ -115,16 +129,6 @@ class Post {
     ]);
   };
 
-  getPostByIdAndTitle = async (id, title) => {
-    const data = await prisma.post.findUnique({
-      where: {
-        id,
-        title,
-      },
-    });
-    return data;
-  };
-
   // useful when deleting author account
   deletePosts = async (authorId) => {
     await prisma.post.deleteMany({
@@ -135,7 +139,7 @@ class Post {
   };
 
   updatePost = async (data) => {
-    const { id, title, content, dateUpdated } = data;
+    const { id, content, dateUpdated } = data;
     let { isPublished = "false" } = data;
 
     let isPublishedBoolean = true;
@@ -157,7 +161,6 @@ class Post {
         id,
       },
       data: {
-        title,
         content,
         dateUpdated,
         isPublished,
