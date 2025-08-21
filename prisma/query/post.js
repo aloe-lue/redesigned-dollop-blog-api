@@ -3,9 +3,18 @@ import comment from "./comment.js";
 
 class Post {
   addPost = async (data) => {
-    const { id, content, dateCreated, dateUpdated, userId, isPublished } = data;
+    const {
+      id,
+      content,
+      title,
+      dateCreated,
+      dateUpdated,
+      userId,
+      isPublished,
+    } = data;
     await prisma.post.create({
       data: {
+        title,
         id,
         content,
         dateCreated,
@@ -36,7 +45,6 @@ class Post {
       },
       take: 5,
       orderBy: {
-        dateUpdated: "desc",
         dateCreated: "desc",
       },
     });
@@ -137,7 +145,7 @@ class Post {
   };
 
   updatePost = async (data) => {
-    const { id, content, dateUpdated } = data;
+    const { id, content, dateUpdated, title } = data;
     let { isPublished = "false" } = data;
 
     let isPublishedBoolean = true;
@@ -159,6 +167,7 @@ class Post {
         id,
       },
       data: {
+        title,
         content,
         dateUpdated,
         isPublished,
