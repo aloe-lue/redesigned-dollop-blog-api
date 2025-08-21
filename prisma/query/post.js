@@ -72,6 +72,7 @@ class Post {
     const data = await prisma.post.findMany({
       take: 10,
       select: {
+        title: true,
         id: true,
         dateCreated: true,
         dateUpdated: true,
