@@ -132,19 +132,10 @@ const authorTokenAuthenticator = asyncHandler(async (req, res, next) => {
 
 const emptyField = "should not be empty.";
 const stringChar = "should be string.";
-const titleLength = "should be between 2 and 64 characters.";
 const minMaxContent = "should be between 500 to 10000 characters.";
 const cuidLength = "should be exactly 25 characters";
 
 const postSetterVc = [
-  body("postTitle")
-    .trim()
-    .notEmpty()
-    .withMessage(`title ${emptyField}`)
-    .isString()
-    .withMessage(`title ${stringChar}`)
-    .isLength({ min: 2, max: 64 })
-    .withMessage(`title ${titleLength}`),
   body("postContent")
     .trim()
     .notEmpty()
@@ -176,10 +167,8 @@ const postSetter = asyncHandler(async (req, res) => {
 
   const data = {
     authorId: bodyReq.postAuthorId,
-    title: bodyReq.postTitle,
     content: bodyReq.postContent,
     dateCreated: new Date(),
-    // comment the next later, i use it for testing
     isPublished: false,
   };
 
@@ -196,14 +185,6 @@ const postAdder = [authorTokenAuthenticator, postSetterVc, postSetter];
 
 const isPublishedBoolean = "should be boolean.";
 const postUpdaterVC = [
-  body("postTitle")
-    .trim()
-    .notEmpty()
-    .withMessage(`title ${emptyField}`)
-    .isString()
-    .withMessage(`title ${stringChar}`)
-    .isLength({ min: 10, max: 64 })
-    .withMessage(`title ${titleLength}`),
   body("postContent")
     .trim()
     .notEmpty()
@@ -252,7 +233,7 @@ const postUpdater = asyncHandler(async (req, res) => {
   if (!post) {
     throw new PostDoesNotExistError("post doesn't exist");
   }
-  const { postTitle, postIsPublished, postContent, postAuthorId } = req.body;
+  const { postIsPublished, postContent, postAuthorId } = req.body;
   const { postId } = req.params;
 
   const data = {
@@ -260,7 +241,6 @@ const postUpdater = asyncHandler(async (req, res) => {
     content: postContent,
     dateUpdated: new Date(),
     id: postId,
-    title: postTitle,
     isPublished: postIsPublished,
   };
 
@@ -286,15 +266,7 @@ const postDeleterVc = [
     .isAlphanumeric()
     .withMessage(`id ${cuidAlphanumeric}`)
     .isLength({ max: 25, min: 25 })
-    .withMessage(`id ${titleLength}`),
-  body("postTitle")
-    .trim()
-    .notEmpty()
-    .withMessage(`title ${emptyField}`)
-    .isString()
-    .withMessage(`title ${stringChar}`)
-    .isLength({ min: 2, max: 64 })
-    .withMessage(`title ${titleLength}`),
+    .withMessage(`id ${postLength}`),
 ];
 
 const postDeleter = asyncHandler(async (req, res) => {
@@ -307,10 +279,7 @@ const postDeleter = asyncHandler(async (req, res) => {
   }
 
   // you want to first find the record
-  const post = await db.post.getPostByIdAndTitle(
-    req.params.postId,
-    req.body.postTitle
-  );
+  const post = await db.post.getPostById(req.params.postId);
 
   // find first the post before deleting since the prisma.model.delete operation returns an exception
   if (!post) {
@@ -323,8 +292,6 @@ const postDeleter = asyncHandler(async (req, res) => {
 });
 
 const postRemover = [authorTokenAuthenticator, postDeleterVc, postDeleter];
-
-// post a comment
 
 export default {
   getPosts: posts,
