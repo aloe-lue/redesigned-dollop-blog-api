@@ -135,8 +135,17 @@ const emptyField = "should not be empty.";
 const stringChar = "should be string.";
 const minMaxContent = "should be between 500 to 10000 characters.";
 const cuidLength = "should be exactly 25 characters";
+const titleLength = "should be between 3 to 255.";
 
 const postSetterVc = [
+  body("postTitle")
+    .trim()
+    .notEmpty()
+    .withMessage(`title ${emptyField}`)
+    .isString()
+    .withMessage(`title ${stringChar}`)
+    .isLength({ min: 3, max: 255 })
+    .withMessage(`title ${titleLength}`),
   body("postContent")
     .trim()
     .notEmpty()
@@ -167,6 +176,7 @@ const postSetter = asyncHandler(async (req, res) => {
   const bodyReq = req.body;
 
   const data = {
+    title: bodyReq.postTitle,
     userId: bodyReq.postUserId,
     content: bodyReq.postContent,
     dateCreated: new Date(),
@@ -186,6 +196,14 @@ const postAdder = [authorTokenAuthenticator, postSetterVc, postSetter];
 
 const isPublishedBoolean = "should be boolean.";
 const postUpdaterVC = [
+  body("postTitle")
+    .trim()
+    .notEmpty()
+    .withMessage(`title ${emptyField}`)
+    .isString()
+    .withMessage(`title ${stringChar}`)
+    .isLength({ min: 3, max: 255 })
+    .withMessage(`title ${titleLength}`),
   body("postContent")
     .trim()
     .notEmpty()
@@ -234,10 +252,11 @@ const postUpdater = asyncHandler(async (req, res) => {
   if (!post) {
     throw new PostDoesNotExistError("post doesn't exist");
   }
-  const { postIsPublished, postContent, postUserId } = req.body;
+  const { postIsPublished, postContent, postUserId, postTitle } = req.body;
   const { postId } = req.params;
 
   const data = {
+    title: postTitle,
     userId: postUserId,
     content: postContent,
     dateUpdated: new Date(),
@@ -314,7 +333,7 @@ const authorPostsVc = [
     .notEmpty()
     .withMessage(`skips ${emptyField}`)
     .isNumeric()
-    .withMessage(`skips ${numeric}`)
+    .withMessage(`skips ${skipsNumeric}`)
     .custom((value) => {
       const val = Number(value);
       return val >= 1 && val < Number.MAX_SAFE_INTEGER;
