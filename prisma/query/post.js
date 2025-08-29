@@ -95,8 +95,9 @@ class Post {
         id: true,
         dateCreated: true,
         dateUpdated: true,
-        user: true,
         comments: false,
+        userId: true,
+        user: false,
       },
 
       where: {
@@ -112,14 +113,14 @@ class Post {
       where: {
         id,
       },
-      select: {
+      include: {
         id: true,
         content: true,
         dateCreated: true,
         dateUpdated: true,
-        user: true,
-        // don't include all comments at all once
         comments: false,
+        user: false,
+        userId: true,
       },
     });
     return data;
