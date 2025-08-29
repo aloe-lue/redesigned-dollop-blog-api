@@ -1,5 +1,5 @@
 import asyncHandler from "express-async-handler";
-import { validationResult, body, header } from "express-validator";
+import { validationResult, body, header, query, param } from "express-validator";
 import * as bcrypt from "bcrypt";
 import db from "../prisma/query/index.js";
 import passport from "passport";
@@ -158,15 +158,15 @@ const userAdder = asyncHandler(async (req, res) => {
  */
 const userSetter = [userAdderVc, userAdder];
 
+const validEmail = "should be a valid email like johndoe@gmail.com";
+
 const userLoginVC = [
-  body("username")
+  body("email")
     .trim()
     .notEmpty()
-    .withMessage(`username ${empty}`)
-    .isLength({ min: 4, max: 32 })
-    .withMessage(`username ${usernameLength}`)
-    .matches(/^[a-zA-Z0-9_]+$/)
-    .withMessage(`username ${username}`),
+    .withMessage(`email ${empty}`)
+    .isEmail()
+    .withMessage(`email ${validEmail}`),
   body("password")
     .trim()
     .notEmpty()
@@ -189,19 +189,25 @@ const validationLogin = asyncHandler(async (req, res, next) => {
   next();
 });
 
-const localStrategy = new LocalStrategy(async (username, password, done) => {
-  const user = await db.user.getUserByUsername(username);
-  if (!user) {
-    return done(null, false, { message: "Incorrect username" });
+const localStrategy = new LocalStrategy(
+  {
+    usernameField: "email",
+    passwordField: "password",
+  },
+  async (email, password, done) => {
+    const user = await db.user.getUserByEmail(email);
+    if (!user) {
+      return done(null, false, { message: "Incorrect email" });
+    }
+    // compare user input password with  hashed user password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return done(null, false, { message: "Incorrect password" });
+    }
+    // send minimal data as payload to jwt
+    return done(null, user.id);
   }
-  // compare user input password with  hashed user password
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    return done(null, false, { message: "Incorrect password" });
-  }
-  // send minimal data as payload to jwt
-  return done(null, user.id);
-});
+);
 
 /**
  * give token to user
@@ -389,6 +395,43 @@ const userDelete = [
   userDeleter,
 ];
 
+const tokenJWT = "should be a valid jwt";
+const userGetterByTokenVc = [
+  param("token")
+    .trim()
+    .notEmpty()
+    .withMessage(`token ${emptyField}`)
+    .isString()
+    .withMessage(`token ${stringCharacter}`)
+    .isJWT()
+    .withMessage(`token ${tokenJWT}`),
+];
+
+const userGetterByToken = [
+  userGetterByTokenVc,
+  asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        errorUserGetter: errors.array(),
+      });
+    }
+
+    const { token } = req.params;
+    const decodedPayload = jwt.decode(token);
+
+    if (!decodedPayload) {
+      return res.status(400).json({
+        errorUserGetter: [],
+        jwtValidity: "jwt invalid"
+      })
+    }
+
+    res.json(decodedPayload);
+  }),
+];
+
 // run validation chain
 // if passed go to the next middleware
 // if correct credentials give token to user member
@@ -398,4 +441,5 @@ export default {
   getUserToken: userTokenGetter,
   logOutUser,
   deleteUser: userDelete,
+  getUserByToken: userGetterByToken,
 };
