@@ -70,15 +70,16 @@ class Post {
 
   getPosts = async () => {
     const data = await prisma.post.findMany({
-      take: 10,
       select: {
         title: true,
         id: true,
         dateCreated: true,
         dateUpdated: true,
-        user: true,
+        userId: true,
         comments: false,
+        user: false
       },
+      take: 10,
       where: {
         isPublished: true,
       },
