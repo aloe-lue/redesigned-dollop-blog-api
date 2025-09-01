@@ -77,7 +77,7 @@ class Post {
         dateUpdated: true,
         userId: true,
         comments: false,
-        user: false
+        user: false,
       },
       take: 10,
       where: {
@@ -149,7 +149,7 @@ class Post {
 
   updatePost = async (data) => {
     const { id, content, dateUpdated, title } = data;
-    let { isPublished = "false" } = data;
+    let { isPublished } = data;
 
     let isPublishedBoolean = true;
     if (typeof isPublished !== "boolean") {
