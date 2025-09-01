@@ -136,6 +136,7 @@ const stringChar = "should be string.";
 const minMaxContent = "should be between 500 to 10000 characters.";
 const cuidLength = "should be exactly 25 characters";
 const titleLength = "should be between 3 to 255.";
+const isPostPublished = "should be a boolean value";
 
 const postSetterVc = [
   body("postTitle")
@@ -162,6 +163,12 @@ const postSetterVc = [
     .withMessage(`userId ${stringChar}`)
     .isLength({ max: 25, min: 25 })
     .withMessage(`userId ${cuidLength}`),
+  body("isPostPublished")
+    .trim()
+    .notEmpty()
+    .withMessage(`isPostPublished ${emptyField}`)
+    .isBoolean()
+    .withMessage(`isPostPublished ${isPostPublished}`),
 ];
 const postSetter = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
@@ -180,7 +187,7 @@ const postSetter = asyncHandler(async (req, res) => {
     userId: bodyReq.postUserId,
     content: bodyReq.postContent,
     dateCreated: new Date(),
-    isPublished: false,
+    isPublished: bodyReq.isPostPublished,
   };
 
   await db.post.addPost(data);
