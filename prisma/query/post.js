@@ -12,6 +12,13 @@ class Post {
       userId,
       isPublished,
     } = data;
+
+    let isPostPublished;
+
+    if (typeof isPublished !== "boolean") {
+      isPostPublished = isPublished === "true";
+    }
+
     await prisma.post.create({
       data: {
         title,
@@ -20,13 +27,13 @@ class Post {
         dateCreated,
         dateUpdated,
         userId,
-        isPublished,
+        isPublished: isPostPublished,
       },
     });
   };
 
   getPostById = async (id) => {
-    const data = await prisma.post.findId({
+    const data = await prisma.post.findUnique({
       where: {
         id,
       },
@@ -38,7 +45,11 @@ class Post {
   getPostsByUserId = async (userId) => {
     const data = await prisma.post.findMany({
       include: {
-        comments: false,
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
       },
       where: {
         userId,
@@ -55,8 +66,11 @@ class Post {
   getPostIdsByUserIdOffset = async (userId, skips) => {
     const data = await prisma.post.findMany({
       include: {
-        comments: false,
-        user: true,
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
       },
       where: {
         userId,
@@ -76,7 +90,11 @@ class Post {
         dateCreated: true,
         dateUpdated: true,
         userId: true,
-        comments: false,
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
         user: false,
       },
       take: 10,
@@ -96,7 +114,11 @@ class Post {
         id: true,
         dateCreated: true,
         dateUpdated: true,
-        comments: false,
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
         userId: true,
         user: false,
       },
@@ -119,9 +141,13 @@ class Post {
         content: true,
         dateCreated: true,
         dateUpdated: true,
-        comments: false,
         user: false,
         userId: true,
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
       },
     });
     return data;
@@ -148,21 +174,11 @@ class Post {
   };
 
   updatePost = async (data) => {
-    const { id, content, dateUpdated, title } = data;
-    let { isPublished } = data;
+    const { id, content, dateUpdated, title, isPublished } = data;
 
-    let isPublishedBoolean = true;
+    let isPostPublished;
     if (typeof isPublished !== "boolean") {
-      isPublishedBoolean = false;
-    }
-
-    const isPublishedBooleanColl = {
-      false: false,
-      true: true,
-    };
-
-    if (!isPublishedBoolean) {
-      isPublished = isPublishedBooleanColl[isPublished];
+      isPostPublished = isPostPublished === "true";
     }
 
     await prisma.post.update({
@@ -173,7 +189,7 @@ class Post {
         title,
         content,
         dateUpdated,
-        isPublished,
+        isPublished: isPostPublished,
       },
     });
   };
