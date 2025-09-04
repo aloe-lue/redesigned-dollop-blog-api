@@ -155,7 +155,12 @@ class Post {
 
   deletePost = async (id) => {
     await prisma.$transaction([
-      comment.deletePostComments(id),
+      prisma.comment.deleteMany({
+        where: {
+          postId: id,
+        },
+      }),
+
       prisma.post.delete({
         where: {
           id,
