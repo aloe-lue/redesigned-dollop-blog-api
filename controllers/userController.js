@@ -1,5 +1,11 @@
 import asyncHandler from "express-async-handler";
-import { validationResult, body, header, query, param } from "express-validator";
+import {
+  validationResult,
+  body,
+  header,
+  query,
+  param,
+} from "express-validator";
 import * as bcrypt from "bcrypt";
 import db from "../prisma/query/index.js";
 import passport from "passport";
@@ -424,11 +430,15 @@ const userGetterByToken = [
     if (!decodedPayload) {
       return res.status(400).json({
         errorUserGetter: [],
-        jwtValidity: "jwt invalid"
-      })
+        jwtValidity: "jwt invalid",
+      });
     }
 
-    res.json(decodedPayload);
+    const user = await db.user.getUserById(decodedPayload.userId);
+
+    const userData = Object.assign(decodedPayload, user);
+
+    res.json(userData);
   }),
 ];
 
