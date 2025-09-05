@@ -137,12 +137,7 @@ class Post {
         id,
       },
       include: {
-        id: true,
-        content: true,
-        dateCreated: true,
-        dateUpdated: true,
         user: false,
-        userId: true,
         _count: {
           select: {
             comments: true,
