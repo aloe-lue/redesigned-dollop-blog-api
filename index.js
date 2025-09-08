@@ -10,12 +10,11 @@ app.use(helmet());
 app.disable("x-powered-by");
 
 app.use(express.urlencoded({ extended: false }));
-const corsOptions = {
-  // hmm don't put it now
-  // origin: "http://localhost:5000",
+
+const corsEnabled = cors({
   optionsSuccessStatus: 200,
-};
-const corsEnabled = cors(corsOptions);
+  origin: process.env.CORS_ORIGIN,
+});
 
 app.options("/api/v1/posts", corsEnabled);
 app.options("/api/v1/user", corsEnabled);
