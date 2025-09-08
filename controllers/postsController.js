@@ -235,7 +235,7 @@ const postUpdaterVC = [
     .withMessage(`postId ${stringChar}`)
     .isLength({ max: 25, min: 25 })
     .withMessage(`postId ${cuidLength}`),
-  body("postIsPublished")
+  body("isPostPublished")
     .trim()
     .notEmpty()
     .withMessage(`is Published ${emptyField}`)
@@ -259,7 +259,7 @@ const postUpdater = asyncHandler(async (req, res) => {
   if (!post) {
     throw new PostDoesNotExistError("post doesn't exist");
   }
-  const { postIsPublished, postContent, postUserId, postTitle } = req.body;
+  const { isPostPublished, postContent, postUserId, postTitle } = req.body;
   const { postId } = req.params;
 
   const data = {
@@ -268,7 +268,7 @@ const postUpdater = asyncHandler(async (req, res) => {
     content: postContent,
     dateUpdated: new Date(),
     id: postId,
-    isPublished: postIsPublished,
+    isPublished: isPostPublished,
   };
 
   await db.post.updatePost(data);
