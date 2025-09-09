@@ -17,7 +17,7 @@ const postsRouter = Router();
 postsRouter.get("/", getPosts);
 
 // get author posts
-postsRouter.get("/:userId", getAuthorPosts);
+postsRouter.get("/userId-:userId", getAuthorPosts);
 
 // get single post
 postsRouter.get("/:postId", getPost);
